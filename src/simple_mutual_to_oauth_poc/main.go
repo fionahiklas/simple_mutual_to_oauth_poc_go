@@ -4,10 +4,14 @@ import (
     "github.com/gorilla/mux"
     "github.com/bestmethod/logger"
     "net/http"
+    "net/url"
     "crypto/x509"
     "crypto/tls"
     "io/ioutil"
     "os"
+    "context"
+
+    "golang.org/x/oauth2/jwt"
 )
 
 /*
@@ -29,24 +33,33 @@ var log *Logger.Logger
   an OAuth token and pass on the request/return the response
   from the downstream service.
 */
-func HttpRequestHandler(response http.ResponseWriter, request *http.Request) {
-  log.Debug("Got request: %s", request)
+func BuildHttpRequestHander(jwtConfig *jwt.Config, postUrl string) func(http.ResponseWriter, *http.Request) {
 
-  log.Debug("REQUEST: Method: %s", request.Method)
-  log.Debug("REQUEST: URL: %s", request.URL)
+  return func(response http.ResponseWriter, request *http.Request) {
+    log.Debug("Got request: %s", request)
 
-  connectionState := request.TLS
-  certificates := connectionState.PeerCertificates
-  log.Debug("REQUEST: TLS: Peer certs count: %d", len(certificates))
-  for _, certificate := range certificates {
-    log.Debug("REQUEST: TLS: Signature: %s", []byte(certificate.Signature))
-    log.Debug("REQUEST: TLS: Subject: %s", certificate.Subject)
-    log.Debug("REQUEST: TLS: Subject: %s", certificate.IsCA)
+    log.Debug("REQUEST: Method: %s", request.Method)
+    log.Debug("REQUEST: URL: %s", request.URL)
+
+    connectionState := request.TLS
+    certificates := connectionState.PeerCertificates
+    log.Debug("REQUEST: TLS: Peer certs count: %d", len(certificates))
+    for _, certificate := range certificates {
+      log.Debug("REQUEST: TLS: Signature: %s", []byte(certificate.Signature))
+      log.Debug("REQUEST: TLS: Subject: %s", certificate.Subject)
+      log.Debug("REQUEST: TLS: Subject: %s", certificate.IsCA)
+    }
+
+    log.Debug("Creating HTTP Client for OAuth2, using config: %s", jwtConfig)
+    httpClient := jwtConfig.Client(context.Background())
+
+    log.Debug("Calling client ...")
+    queryParams := make(url.Values)
+    httpClient.PostForm(postUrl, queryParams)
+
+    response.Write([]byte("Hello, I heard you :)"))
   }
-
-  response.Write([]byte("Hello, I heard you :)"))
 }
-
 
 /*
   Basic setup for the application
@@ -75,10 +88,18 @@ func main() {
   listenerConfig.CertFile = argsWithoutProg[2]
   listenerConfig.CAFile = argsWithoutProg[3]
 
+  // OAuth2 Config
+  oauthConfig := &jwt.Config {
+    TokenURL: argsWithoutProg[4],
+    Subject: "test@matooa",
+  }
+
   // Create the handler for HTTP(S) connections
   router := mux.NewRouter()
-  router.HandleFunc("/hb", HttpRequestHandler).Methods("GET")
-  router.HandleFunc("/hb", HttpRequestHandler).Methods("POST")
+  handler := BuildHttpRequestHander(oauthConfig, argsWithoutProg[5])
+
+  router.HandleFunc("/hb", handler).Methods("GET")
+  router.HandleFunc("/hb", handler).Methods("POST")
 
   log.Debug("Attempting to read CA cert from: %s",listenerConfig.CAFile)
 

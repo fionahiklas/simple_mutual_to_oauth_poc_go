@@ -117,6 +117,16 @@ go get simple_mutual_to_oauth_poc
 
 ## References
 
-### GoLang TLS
+### OAuth2
+
+* [Server to server flows](https://developers.google.com/identity/protocols/OAuth2ServiceAccount)
+
+### Go Mutual Auth
 
 * [Example code](https://github.com/wolfeidau/golang-massl/blob/master/cmd/massl-https/server.go)
+
+
+### Go OAuth2
+
+* [Library and Example](https://github.com/golang/oauth2)
+* [Example](https://tutorialedge.net/golang/go-oauth2-tutorial/)
