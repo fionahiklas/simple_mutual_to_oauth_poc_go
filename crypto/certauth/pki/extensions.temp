@@ -5,12 +5,11 @@
 # demonstrated in the following example:
 
 #crlDistributionPoints = URI:http://example.net/pki/my_ca.crl
-# X509 extensions for a server
+# X509 extensions for a client
 
 basicConstraints = CA:FALSE
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid,issuer:always
-extendedKeyUsage = serverAuth
-keyUsage = digitalSignature,keyEncipherment
+extendedKeyUsage = clientAuth
+keyUsage = digitalSignature
 
-subjectAltName = DNS:matooa-server

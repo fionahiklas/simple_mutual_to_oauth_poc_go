@@ -2,6 +2,26 @@
 
 Simple proof of concept for mutual auth to OAuth2 microservice
 
+
+## Quickstart
+
+Run the application with the following command
+
+```
+bin/simple_mutual_to_oauth_poc 127.0.0.1:9443 crypto/server/pki/private/matooa-server.key crypto/certauth/pki/issue
+d/matooa-server.crt crypto/certauth/pki/ca.crt
+```
+
+Test with Curl
+
+```
+curl -vvv -k \
+--cacert crypto/certauth/pki/ca.crt \
+--key crypto/client/pki/private/matooa-client.key \
+--cert crypto/certauth/pki/issued/matooa-client.crt \
+ https://localhost:9443/hb
+```
+
 ## Setup
 
 ### Crypto
@@ -51,6 +71,31 @@ openssl rsa -in matooa-server-enc.key -out matooa-server.key
 ```
 
 
+#### Client Key and Certificate
+
+Create the key and signing request under the client directory
+
+```
+easyrsa gen-req matooa-client
+```
+
+Under the Certification Authority directory run the following commands to
+import and sign the request
+
+```
+easyrsa import-req ../client/pki/reqs/matooa-client.req client-server
+easyrsa sign-req client matooa-client
+```
+
+To allow the application to read the key (without needing a passphrase) remove
+the password with the following command (under the server directory)
+
+```
+mv matooa-client.key matooa-client-enc.key
+openssl rsa -in matooa-client-enc.key -out matooa-client.key
+```
+
+
 ### Compiling and Running
 
 #### Compiling
@@ -68,7 +113,6 @@ Compile (and grab dependencies) with the following
 ```
 go get simple_mutual_to_oauth_poc
 ```
-
 
 
 ## References
