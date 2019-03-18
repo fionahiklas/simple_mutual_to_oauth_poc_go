@@ -31,6 +31,19 @@ var log *Logger.Logger
 */
 func HttpRequestHandler(response http.ResponseWriter, request *http.Request) {
   log.Debug("Got request: %s", request)
+
+  log.Debug("REQUEST: Method: %s", request.Method)
+  log.Debug("REQUEST: URL: %s", request.URL)
+
+  connectionState := request.TLS
+  certificates := connectionState.PeerCertificates
+  log.Debug("REQUEST: TLS: Peer certs count: %d", len(certificates))
+  for _, certificate := range certificates {
+    log.Debug("REQUEST: TLS: Signature: %s", []byte(certificate.Signature))
+    log.Debug("REQUEST: TLS: Subject: %s", certificate.Subject)
+    log.Debug("REQUEST: TLS: Subject: %s", certificate.IsCA)
+  }
+
   response.Write([]byte("Hello, I heard you :)"))
 }
 
@@ -88,7 +101,8 @@ func main() {
 	server := &http.Server{
 		Addr:      listenerConfig.Address,
 		TLSConfig: tlsConfig,
-    Handler: router }
+    Handler: router,
+  }
 
 	// listen using the server certificate which is validated by the client
   server.ListenAndServeTLS(listenerConfig.CertFile, listenerConfig.KeyFile)
