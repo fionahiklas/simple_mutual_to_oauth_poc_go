@@ -1,0 +1,8 @@
+# Binaries
+bin
+
+# Backup
+*~
+
+# Logs
+*.log

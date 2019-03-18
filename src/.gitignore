@@ -1,0 +1,5 @@
+# Ignore all ..
+/* 
+
+# ... except the project
+!/simple_mutual_to_oauth_poc
