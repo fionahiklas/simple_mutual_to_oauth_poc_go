@@ -8,8 +8,13 @@ Simple proof of concept for mutual auth to OAuth2 microservice
 Run the application with the following command
 
 ```
-bin/simple_mutual_to_oauth_poc 127.0.0.1:9443 crypto/server/pki/private/matooa-server.key crypto/certauth/pki/issue
-d/matooa-server.crt crypto/certauth/pki/ca.crt
+bin/simple_mutual_to_oauth_poc \
+127.0.0.1:9443 \
+crypto/server/pki/private/matooa-server.key \
+crypto/certauth/pki/issued/matooa-server.crt \
+crypto/certauth/pki/ca.crt \
+http://127.0.0.1:8080/rti-stub/oauth/token \
+http://127.0.0.1:8080/rti-stub/1234/income
 ```
 
 Test with Curl
@@ -19,7 +24,8 @@ curl -vvv -k \
 --cacert crypto/certauth/pki/ca.crt \
 --key crypto/client/pki/private/matooa-client.key \
 --cert crypto/certauth/pki/issued/matooa-client.crt \
- https://localhost:9443/hb
+https://localhost:9443/hb \
+crypto/oauth/pki/private/matooa-oauth.key 
 ```
 
 ## Setup
