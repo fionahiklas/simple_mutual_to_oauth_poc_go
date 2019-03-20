@@ -20,6 +20,8 @@ import (
     "golang.org/x/oauth2/clientcredentials"
 
     "github.com/dgryski/dgoogauth"
+
+    "encoding/base32"
 )
 
 /*
@@ -45,8 +47,11 @@ var log *Logger.Logger
   TODO: Remove when using this code for real :)
 */
 func CalculateClientSecretCode(clientSecretString string) string {
+  log.Debug("calculating code for: %s", clientSecretString)
+  encodedSecretForComputation :=  base32.StdEncoding.EncodeToString([]byte(clientSecretString))
+  log.Debug("Encoded secret: %s", encodedSecretForComputation)
   currentUnixTime := time.Now().Unix()
-  calculatedCode := dgoogauth.ComputeCode(clientSecretString, currentUnixTime)
+  calculatedCode := dgoogauth.ComputeCode(encodedSecretForComputation, currentUnixTime)
   log.Debug("Calculated client secret code: %d", calculatedCode)
   return strconv.Itoa(calculatedCode)
 }
@@ -68,9 +73,7 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
     certificates := connectionState.PeerCertificates
     log.Debug("REQUEST: TLS: Peer certs count: %d", len(certificates))
     for _, certificate := range certificates {
-      log.Debug("REQUEST: TLS: Signature: %s", []byte(certificate.Signature))
       log.Debug("REQUEST: TLS: Subject: %s", certificate.Subject)
-      log.Debug("REQUEST: TLS: Subject: %s", certificate.IsCA)
     }
 
     // OAuth2 Config - need to recreate this for each client
@@ -127,7 +130,6 @@ func main() {
   listenerConfig.PostURL = argsWithoutProg[5]
   listenerConfig.ClientID = argsWithoutProg[6]
   listenerConfig.ClientSecret = argsWithoutProg[7]
-
 
   // Create the handler for HTTP(S) connections
   router := mux.NewRouter()
