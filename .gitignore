@@ -6,3 +6,8 @@ bin
 
 # Logs
 *.log
+
+# Project files
+.idea
+*.iml
+

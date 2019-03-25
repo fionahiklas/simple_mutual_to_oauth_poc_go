@@ -120,6 +120,15 @@ Compile (and grab dependencies) with the following
 go get simple_mutual_to_oauth_poc
 ```
 
+#### Running Tests
+
+Any unit tests can be run with the following command
+
+```
+go test simple_mutual_to_oauth_poc
+```
+
+
 
 ## References
 
