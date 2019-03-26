@@ -1,27 +1,20 @@
 package main
 
 import (
-    "github.com/gorilla/mux"
-    "github.com/bestmethod/logger"
+  "flag"
+  "github.com/bestmethod/logger"
+  "github.com/gorilla/mux"
 
-    "net/http"
-    "net/url"
-    "context"
+  "context"
+  "net/http"
+  "net/url"
 
-    "crypto/x509"
-    "crypto/tls"
+  "crypto/tls"
+  "crypto/x509"
 
-    "io/ioutil"
-    "os"
-    "time"
-    "strconv"
-
-    "golang.org/x/oauth2"
-    "golang.org/x/oauth2/clientcredentials"
-
-    "github.com/dgryski/dgoogauth"
-
-    "encoding/base32"
+  "golang.org/x/oauth2"
+  "golang.org/x/oauth2/clientcredentials"
+  "io/ioutil"
 )
 
 /*
@@ -47,13 +40,7 @@ var log *Logger.Logger
   TODO: Remove when using this code for real :)
 */
 func CalculateClientSecretCode(clientSecretString string) string {
-  log.Debug("calculating code for: %s", clientSecretString)
-  encodedSecretForComputation :=  base32.StdEncoding.EncodeToString([]byte(clientSecretString))
-  log.Debug("Encoded secret: %s", encodedSecretForComputation)
-  currentUnixTime := time.Now().Unix()
-  calculatedCode := dgoogauth.ComputeCode(encodedSecretForComputation, currentUnixTime)
-  log.Debug("Calculated client secret code: %d", calculatedCode)
-  return strconv.Itoa(calculatedCode)
+  return clientSecretString
 }
 
 /*
@@ -116,20 +103,26 @@ func init() {
   MAIN FUNCTION
 */
 func main() {
-  argsWithoutProg := os.Args[1:]
 
-  log.Debug("Command line arguments: %s", argsWithoutProg)
-
+  // Holds all of the config values
   listenerConfig := &MutualAuthListenerConfig{}
+  helpFlag := false
 
-  listenerConfig.Address = argsWithoutProg[0]
-  listenerConfig.KeyFile = argsWithoutProg[1]
-  listenerConfig.CertFile = argsWithoutProg[2]
-  listenerConfig.CAFile = argsWithoutProg[3]
-  listenerConfig.TokenURL = argsWithoutProg[4]
-  listenerConfig.PostURL = argsWithoutProg[5]
-  listenerConfig.ClientID = argsWithoutProg[6]
-  listenerConfig.ClientSecret = argsWithoutProg[7]
+  flag.StringVar(&listenerConfig.Address, "listenAddr", "127.0.0.1:8443", "The address to listen for connections on")
+  flag.StringVar(&listenerConfig.KeyFile, "keyFile", "", "Private key for TLS for listening endpoint")
+  flag.StringVar(&listenerConfig.CertFile, "certFile", "", "Certificate file for TLD listening endpoint")
+  flag.StringVar(&listenerConfig.CAFile, "caFile", "", "Certification authority file")
+  flag.StringVar(&listenerConfig.TokenURL, "oauthURL", "", "OAuth2 Token URL")
+  flag.StringVar(&listenerConfig.PostURL, "postURL", "", "URL to access the service")
+  flag.StringVar(&listenerConfig.ClientID, "clientID", "", "Unique ID for this client for OAuth authentication")
+  flag.StringVar(&listenerConfig.ClientSecret, "clientSecret", "", "The client secret for authentication")
+  flag.BoolVar(&helpFlag, "help", false, "Display help")
+  flag.Parse()
+
+  if helpFlag {
+    flag.Usage()
+    return
+  }
 
   // Create the handler for HTTP(S) connections
   router := mux.NewRouter()
@@ -140,10 +133,10 @@ func main() {
 
   log.Debug("Attempting to read CA cert from: %s",listenerConfig.CAFile)
 
-	caCert, err := ioutil.ReadFile(listenerConfig.CAFile)
-	if err != nil {
+  caCert, err := ioutil.ReadFile(listenerConfig.CAFile)
+  if err != nil {
     log.Fatalf(1, "Error reading CA file '%s' message: %s", listenerConfig.CAFile)
-	}
+  }
 
   log.Debug("Creating CA cert pool")
 	caCertPool := x509.NewCertPool()

@@ -9,12 +9,12 @@ Run the application with the following command
 
 ```
 bin/simple_mutual_to_oauth_poc \
-127.0.0.1:9443 \
-crypto/server/pki/private/matooa-server.key \
-crypto/certauth/pki/issued/matooa-server.crt \
-crypto/certauth/pki/ca.crt \
-http://127.0.0.1:8080/rti-stub/oauth/token \
-http://127.0.0.1:8080/rti-stub/1234/income
+-listenAddr 127.0.0.1:9443 \
+-keyFile crypto/server/pki/private/matooa-server.key \
+-certFile crypto/certauth/pki/issued/matooa-server.crt \
+-caFile crypto/certauth/pki/ca.crt \
+-tokenURL http://127.0.0.1:8080/rti-stub/oauth/token \
+-postURL http://127.0.0.1:8080/rti-stub/1234/income
 ```
 
 Test with Curl
@@ -150,3 +150,9 @@ go test simple_mutual_to_oauth_poc
 * [Go Testing Library](https://golang.org/pkg/testing/)
 * [HTTP Library](https://godoc.org/net/http)
 * [TLS Library](https://golang.org/pkg/crypto/tls/)
+
+
+#### Go Utils
+
+* [Argument parsing](https://golang.org/pkg/flag/)
+
