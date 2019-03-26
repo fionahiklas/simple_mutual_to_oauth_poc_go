@@ -145,3 +145,8 @@ go test simple_mutual_to_oauth_poc
 
 * [Library and Example](https://github.com/golang/oauth2)
 * [Example](https://tutorialedge.net/golang/go-oauth2-tutorial/)
+* [TOPT Library](https://github.com/dgryski/dgoogauth)
+* [Base32 Library](https://golang.org/pkg/encoding/base32/)
+* [Go Testing Library](https://golang.org/pkg/testing/)
+* [HTTP Library](https://godoc.org/net/http)
+* [TLS Library](https://golang.org/pkg/crypto/tls/)
