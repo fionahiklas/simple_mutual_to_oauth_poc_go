@@ -4,18 +4,20 @@ import (
   "flag"
   "github.com/bestmethod/logger"
   "github.com/gorilla/mux"
+  "io"
 
   "context"
-  "net/http"
-  "net/url"
-
   "crypto/tls"
   "crypto/x509"
+  "net/http"
 
   "golang.org/x/oauth2"
   "golang.org/x/oauth2/clientcredentials"
   "io/ioutil"
 )
+
+
+const READ_WRITE_BUFFER_SIZE = 20
 
 /*
   Contains all the data needed to construct an endpoint that
@@ -23,25 +25,18 @@ import (
   calls to a downstream service
 */
 type MutualAuthListenerConfig struct {
-  Address string  // Of the form <address>:<port>
-  KeyFile string  // The private key for the server
-  CertFile string // The certificate for the server
-  CAFile string   // The Certification Authority (chain of trust)
-  TokenURL string // Used for getting a token from the downstream server
-  PostURL string   // URL to proxy requests to
-  ClientID string // ID for this client
-  ClientSecret string // Secret value used in authentication
+  Address        string // Of the form <address>:<port>
+  KeyFile        string // The private key for the server
+  CertFile       string // The certificate for the server
+  CAFile         string // The Certification Authority (chain of trust)
+  TokenURL       string // Used for getting a token from the downstream server
+  ApplicationURL string // URL to proxy requests to
+  ClientID       string // ID for this client
+  ClientSecret   string // Secret value used in authentication
 }
 
 var log *Logger.Logger
 
-/*
-  Create code from Client Secret string for use with the stub we're testing against
-  TODO: Remove when using this code for real :)
-*/
-func CalculateClientSecretCode(clientSecretString string) string {
-  return clientSecretString
-}
 
 /*
   For any HTTP request map the client certificate details to
@@ -67,7 +62,7 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
     clientCredentialConfig := &clientcredentials.Config {
       TokenURL: listenerConfig.TokenURL,
       ClientID: listenerConfig.ClientID,
-      ClientSecret: CalculateClientSecretCode(listenerConfig.ClientSecret),
+      ClientSecret: listenerConfig.ClientSecret,
       AuthStyle: oauth2.AuthStyleInParams,
     }
 
@@ -75,15 +70,32 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
     httpClient := clientCredentialConfig.Client(context.Background())
 
     log.Debug("Calling client ...")
-    queryParams := make(url.Values)
-    clientResponse, clientError := httpClient.PostForm(listenerConfig.PostURL, queryParams)
+
+    clientResponse, clientError := httpClient.Get(listenerConfig.ApplicationURL)
     if clientError != nil {
       log.Debug("Got an error calling client: %s", clientError)
-    } else {
-      log.Debug("Client response status code: %d", clientResponse.StatusCode)
-      log.Debug("Client response status: %s", clientResponse.Status)
+      response.WriteHeader(500)
+      return
     }
-    response.Write([]byte("Hello, I heard you :)"))
+
+    log.Debug("Client response status code: %d", clientResponse.StatusCode)
+    log.Debug("Client response status: %s", clientResponse.Status)
+
+    // Clean up the HTTP client call at the end of this function
+    defer clientResponse.Body.Close()
+
+    response.Write([]byte("Got this response from downstream:\n"))
+
+    log.Debug("Reading downstream response and copying to reply")
+    buffer := make([]byte, READ_WRITE_BUFFER_SIZE)
+    for {
+      bytesRead, readError := clientResponse.Body.Read(buffer)
+      log.Debug("Read %d bytes from downstream", bytesRead)
+      if readError == io.EOF {
+        break
+      }
+      response.Write(buffer[:bytesRead])
+    }
   }
 }
 
@@ -112,8 +124,8 @@ func main() {
   flag.StringVar(&listenerConfig.KeyFile, "keyFile", "", "Private key for TLS for listening endpoint")
   flag.StringVar(&listenerConfig.CertFile, "certFile", "", "Certificate file for TLD listening endpoint")
   flag.StringVar(&listenerConfig.CAFile, "caFile", "", "Certification authority file")
-  flag.StringVar(&listenerConfig.TokenURL, "oauthURL", "", "OAuth2 Token URL")
-  flag.StringVar(&listenerConfig.PostURL, "postURL", "", "URL to access the service")
+  flag.StringVar(&listenerConfig.TokenURL, "tokenURL", "", "OAuth2 Token URL")
+  flag.StringVar(&listenerConfig.ApplicationURL, "applicationURL", "", "URL to access the service")
   flag.StringVar(&listenerConfig.ClientID, "clientID", "", "Unique ID for this client for OAuth authentication")
   flag.StringVar(&listenerConfig.ClientSecret, "clientSecret", "", "The client secret for authentication")
   flag.BoolVar(&helpFlag, "help", false, "Display help")

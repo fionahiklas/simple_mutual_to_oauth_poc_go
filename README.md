@@ -13,8 +13,8 @@ bin/simple_mutual_to_oauth_poc \
 -keyFile crypto/server/pki/private/matooa-server.key \
 -certFile crypto/certauth/pki/issued/matooa-server.crt \
 -caFile crypto/certauth/pki/ca.crt \
--tokenURL http://127.0.0.1:8080/rti-stub/oauth/token \
--postURL http://127.0.0.1:8080/rti-stub/1234/income
+-tokenURL https://127.0.0.1:8443/hello-world-service/oauth2/token \
+-applicationURL http://127.0.0.1:8000/status
 ```
 
 Test with Curl
