@@ -5,6 +5,7 @@ import (
   "github.com/bestmethod/logger"
   "github.com/gorilla/mux"
   "io"
+  //"net/url"
 
   "context"
   "crypto/tls"
@@ -31,6 +32,7 @@ type MutualAuthListenerConfig struct {
   CAFile         string // The Certification Authority (chain of trust)
   TokenURL       string // Used for getting a token from the downstream server
   ApplicationURL string // URL to proxy requests to
+  ApplicationHost string // Host header for the client
   ClientID       string // ID for this client
   ClientSecret   string // Secret value used in authentication
 }
@@ -67,11 +69,40 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
     }
 
     log.Debug("Creating HTTP Client for OAuth2, using config: %s", clientCredentialConfig)
-    httpClient := clientCredentialConfig.Client(context.Background())
 
-    log.Debug("Calling client ...")
+    // TODO: Hack to ignore SSL cert of the server
+    transportThatIgnoresSSL := &http.Transport{
+      TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+    }
+
+    httpClientToIgnoreSSL := &http.Client{
+      Transport: transportThatIgnoresSSL,
+    }
+
+    contextForOAuthClient := context.WithValue(context.Background(), oauth2.HTTPClient, httpClientToIgnoreSSL)
+
+    httpClient := clientCredentialConfig.Client(contextForOAuthClient)
+
+    log.Debug("HTTP Client transport: %s", httpClient.Transport)
+
+    // TODO: This may be needed for calling POST/GET
+    //log.Debug("Creating request")
+    //clientUrl, urlError := url.Parse(listenerConfig.ApplicationURL)
+    //if urlError != nil {
+    //  log.Error("Error parsing URL: %s", urlError)
+    //  return
+    //}
+
+    //clientRequest := &http.Request{
+    //  Method: "GET",
+    //  URL: clientUrl,
+    //  Host: listenerConfig.ApplicationHost,
+    //}
+    //
+    //log.Debug("Calling client with request: %s", clientRequest)
 
     clientResponse, clientError := httpClient.Get(listenerConfig.ApplicationURL)
+
     if clientError != nil {
       log.Debug("Got an error calling client: %s", clientError)
       response.WriteHeader(500)
@@ -126,6 +157,7 @@ func main() {
   flag.StringVar(&listenerConfig.CAFile, "caFile", "", "Certification authority file")
   flag.StringVar(&listenerConfig.TokenURL, "tokenURL", "", "OAuth2 Token URL")
   flag.StringVar(&listenerConfig.ApplicationURL, "applicationURL", "", "URL to access the service")
+  flag.StringVar(&listenerConfig.ApplicationHost, "applicationHost", "", "Host header to pass downstream")
   flag.StringVar(&listenerConfig.ClientID, "clientID", "", "Unique ID for this client for OAuth authentication")
   flag.StringVar(&listenerConfig.ClientSecret, "clientSecret", "", "The client secret for authentication")
   flag.BoolVar(&helpFlag, "help", false, "Display help")

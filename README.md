@@ -15,6 +15,7 @@ bin/simple_mutual_to_oauth_poc \
 -caFile crypto/certauth/pki/ca.crt \
 -tokenURL https://127.0.0.1:8443/hello-world-service/oauth2/token \
 -applicationURL http://127.0.0.1:8000/status
+-applicationHost hello.eu
 ```
 
 Test with Curl
@@ -24,8 +25,7 @@ curl -vvv -k \
 --cacert crypto/certauth/pki/ca.crt \
 --key crypto/client/pki/private/matooa-client.key \
 --cert crypto/certauth/pki/issued/matooa-client.crt \
-https://localhost:9443/hb \
-crypto/oauth/pki/private/matooa-oauth.key 
+https://localhost:9443/hb
 ```
 
 ## Setup
@@ -147,10 +147,13 @@ go test simple_mutual_to_oauth_poc
 * [Example](https://tutorialedge.net/golang/go-oauth2-tutorial/)
 * [TOPT Library](https://github.com/dgryski/dgoogauth)
 * [Base32 Library](https://golang.org/pkg/encoding/base32/)
+
+### Go Comms
+
 * [Go Testing Library](https://golang.org/pkg/testing/)
 * [HTTP Library](https://godoc.org/net/http)
 * [TLS Library](https://golang.org/pkg/crypto/tls/)
-
+* [How to replace transport](https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate)
 
 #### Go Utils
 
