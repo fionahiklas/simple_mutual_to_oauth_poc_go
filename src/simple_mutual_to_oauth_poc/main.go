@@ -47,6 +47,9 @@ type LoggingTransport struct {
 
 func (loggingTransport *LoggingTransport) RoundTrip(requestToLog *http.Request) (*http.Response, error) {
   log.Debug("LOG HTTP: Request: %s", requestToLog)
+  log.Debug("LOG HTTP: Headers: %s", requestToLog.Header)
+  log.Debug("LOG HTTP: Auth Head: %s", requestToLog.Header.Get("Authorization"))
+
   responseToLog, errorToLog := loggingTransport.DownstreamTransport.RoundTrip(requestToLog)
   log.Debug("LOG HTTP: Response: %s, error: %s", responseToLog, errorToLog)
   return responseToLog, errorToLog
@@ -78,7 +81,9 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
       TokenURL: listenerConfig.TokenURL,
       ClientID: listenerConfig.ClientID,
       ClientSecret: listenerConfig.ClientSecret,
-      Scopes: []string{ "email", "phone", "address" },
+      // TODO: THis is currently broken as Kong seems to have used "email,phone,address" as one scope
+      // TODO: rather than creating a list of 3 different scopes
+      Scopes: []string{ "email,phone,address" },
       AuthStyle: oauth2.AuthStyleInHeader,
     }
 
@@ -143,10 +148,14 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
     for {
       bytesRead, readError := clientResponse.Body.Read(buffer)
       log.Debug("Read %d bytes from downstream", bytesRead)
+      if bytesRead > 0 {
+        log.Debug("Writing %d bytes", bytesRead)
+        response.Write(buffer[:bytesRead])
+      }
       if readError == io.EOF {
+        log.Debug("Reached EOF from downstream")
         break
       }
-      response.Write(buffer[:bytesRead])
     }
   }
 }

@@ -13,9 +13,11 @@ bin/simple_mutual_to_oauth_poc \
 -keyFile crypto/server/pki/private/matooa-server.key \
 -certFile crypto/certauth/pki/issued/matooa-server.crt \
 -caFile crypto/certauth/pki/ca.crt \
--tokenURL https://127.0.0.1:8443/hello-world-service/oauth2/token \
--applicationURL http://127.0.0.1:8000/status
--applicationHost hello.eu
+-tokenURL https://hello.eu:8443/hello-world-service/oauth2/token \
+-applicationURL http://127.0.0.1:8000/status \
+-applicationHost hello.eu \
+-clientID rincewind \
+-clientSecret potatoes
 ```
 
 Test with Curl
