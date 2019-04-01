@@ -5,6 +5,8 @@ import (
   "github.com/bestmethod/logger"
   "github.com/gorilla/mux"
   "io"
+  "net/url"
+
   //"net/url"
 
   "context"
@@ -39,6 +41,17 @@ type MutualAuthListenerConfig struct {
 
 var log *Logger.Logger
 
+type LoggingTransport struct {
+  DownstreamTransport http.RoundTripper
+}
+
+func (loggingTransport *LoggingTransport) RoundTrip(requestToLog *http.Request) (*http.Response, error) {
+  log.Debug("LOG HTTP: Request: %s", requestToLog)
+  responseToLog, errorToLog := loggingTransport.DownstreamTransport.RoundTrip(requestToLog)
+  log.Debug("LOG HTTP: Response: %s, error: %s", responseToLog, errorToLog)
+  return responseToLog, errorToLog
+}
+
 
 /*
   For any HTTP request map the client certificate details to
@@ -65,7 +78,8 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
       TokenURL: listenerConfig.TokenURL,
       ClientID: listenerConfig.ClientID,
       ClientSecret: listenerConfig.ClientSecret,
-      AuthStyle: oauth2.AuthStyleInParams,
+      Scopes: []string{ "email", "phone", "address" },
+      AuthStyle: oauth2.AuthStyleInHeader,
     }
 
     log.Debug("Creating HTTP Client for OAuth2, using config: %s", clientCredentialConfig)
@@ -79,29 +93,36 @@ func BuildHttpRequestHander(listenerConfig *MutualAuthListenerConfig) func(http.
       Transport: transportThatIgnoresSSL,
     }
 
+    currentTransport := httpClientToIgnoreSSL.Transport
+    loggingTransport := &LoggingTransport{
+      DownstreamTransport: currentTransport,
+    }
+
+    // TODO: I think this could be refactored
+    httpClientToIgnoreSSL.Transport = loggingTransport
+
     contextForOAuthClient := context.WithValue(context.Background(), oauth2.HTTPClient, httpClientToIgnoreSSL)
 
     httpClient := clientCredentialConfig.Client(contextForOAuthClient)
 
     log.Debug("HTTP Client transport: %s", httpClient.Transport)
 
-    // TODO: This may be needed for calling POST/GET
-    //log.Debug("Creating request")
-    //clientUrl, urlError := url.Parse(listenerConfig.ApplicationURL)
-    //if urlError != nil {
-    //  log.Error("Error parsing URL: %s", urlError)
-    //  return
-    //}
+    log.Debug("Creating request")
+    clientUrl, urlError := url.Parse(listenerConfig.ApplicationURL)
+    if urlError != nil {
+      log.Error("Error parsing URL: %s", urlError)
+      return
+    }
 
-    //clientRequest := &http.Request{
-    //  Method: "GET",
-    //  URL: clientUrl,
-    //  Host: listenerConfig.ApplicationHost,
-    //}
-    //
-    //log.Debug("Calling client with request: %s", clientRequest)
+    clientRequest := &http.Request{
+      Method: "GET",
+      URL: clientUrl,
+      Host: listenerConfig.ApplicationHost,
+    }
 
-    clientResponse, clientError := httpClient.Get(listenerConfig.ApplicationURL)
+    log.Debug("Calling client with request: %s", clientRequest)
+
+    clientResponse, clientError := httpClient.Do(clientRequest)
 
     if clientError != nil {
       log.Debug("Got an error calling client: %s", clientError)
